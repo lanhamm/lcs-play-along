@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Play-Along">
+<title>Home Play-Along</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#e9edf1; --surface:#f8fafb; --ink:#17212c; --muted:#5b6876; --line:#cfd6dd;
+  --accent:#8a6a2b; --accent-ink:#ffffff; --accent-soft:#efe6d3; --rec:#b3261e; --ok:#2f6b3f;
+  --paper:#ffffff; --shadow:0 1px 2px rgba(23,33,44,.08),0 6px 20px rgba(23,33,44,.08);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--ground:#0f151b; --surface:#18212a; --ink:#e4e9ee; --muted:#9aa7b4; --line:#2b3642;
+    --accent:#d0ad62; --accent-ink:#17120a; --accent-soft:#3a3120; --rec:#f08079; --ok:#7fc795;
+    --paper:#f3f3f1; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); color-scheme:dark;}
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+button,select,input{font:inherit;color:inherit}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
+  padding:10px 16px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.left{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.titlerow{display:flex;gap:8px;align-items:center;min-width:0}
+select#piece{flex:1;min-width:0;max-width:420px;font-family:"Newsreader",Georgia,serif;font-size:19px;font-weight:600;
+  background:transparent;border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.status{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+.status b{color:var(--ink);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--ground);border-radius:8px;padding:7px 11px;cursor:pointer;min-height:38px;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.mark{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.btn.mark.recording{background:var(--rec);border-color:var(--rec);color:#fff}
+.btn[disabled]{opacity:.45;cursor:default}
+.pageinfo{font-size:13px;color:var(--muted);min-width:64px;text-align:center}
+.ytwrap{flex:none;width:200px;height:200px;border-radius:8px;overflow:hidden;background:#000}
+#yt{width:200px;height:200px}
+
+main{padding:12px 16px 24px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#scorebox{position:relative;max-width:100%}
+canvas#page{display:block;background:var(--paper);box-shadow:var(--shadow);border-radius:2px;max-width:100%}
+.turnflash{position:absolute;inset:0;pointer-events:none;border:3px solid var(--accent);border-radius:2px;opacity:0;transition:opacity .5s}
+.turnflash.on{opacity:1;transition:none}
+
+.panel{width:100%;max-width:760px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel h2{margin:0;font-family:"Newsreader",Georgia,serif;font-size:22px;font-weight:600;text-wrap:balance}
+.panel p{margin:0;color:var(--muted);max-width:65ch}
+.setlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.setlist li{display:grid;grid-template-columns:2ch 1fr auto;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.setlist li:last-child{border-bottom:0}
+.setlist .n{color:var(--muted)}
+.setlist .t{font-family:"Newsreader",Georgia,serif;font-size:17px}
+.setlist .c{color:var(--muted);font-size:13px}
+.chip{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.ok{border-color:var(--ok);color:var(--ok)}
+.chip.warn{border-color:var(--accent);color:var(--accent)}
+.help{font-size:13px;color:var(--muted)}
+kbd{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px}
+.hidden{display:none!important}
+
+@media (max-width:560px){
+  header.bar{padding:8px 12px;gap:8px}
+  select#piece{font-size:17px}
+  .btn{padding:6px 9px;min-height:36px}
+  .ytwrap,#yt{width:140px;height:140px}
+  main{padding:8px 8px 20px}
+  .hide-narrow{display:none}
+}
+@media (prefers-reduced-motion:reduce){.turnflash{transition:none}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="left">
+    <div class="titlerow">
+      <select id="piece" aria-label="Piece"></select>
+    </div>
+    <div class="status" id="status">Loading…</div>
+    <div class="row">
+      <button class="btn primary" id="play" aria-label="Play or pause">▶ Play</button>
+      <button class="btn" id="back5" aria-label="Back 5 seconds">−5s</button>
+      <button class="btn" id="fwd5" aria-label="Forward 5 seconds">+5s</button>
+      <button class="btn" id="restart" aria-label="Restart piece">⏮</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="prev" aria-label="Previous page">◀</button>
+      <span class="pageinfo mono" id="pageinfo">– / –</span>
+      <button class="btn" id="next" aria-label="Next page">▶</button>
+      <button class="btn mark" id="mark" title="Turn the page now and save this moment as the page turn">Turn here</button>
+      <button class="btn hide-narrow" id="undo" title="Remove the last page turn you marked">Undo turn</button>
+    </div>
+  </div>
+  <div class="ytwrap"><div id="yt"></div></div>
+</header>
+
+<main>
+  <section class="panel hidden" id="setup">
+    <h2>Load Scott's scores on this device</h2>
+    <p>The scores stay on this device. Pick the PDFs from the <b>lcs-home-2026/scores</b> folder in Dropbox (Personal &amp; Family). You only need to do this once per device and browser.</p>
+    <div class="row">
+      <label class="btn primary" for="files">Choose PDFs…</label>
+      <input type="file" id="files" accept="application/pdf,.pdf" multiple class="hidden">
+      <button class="btn" id="closeSetup">Done</button>
+    </div>
+    <ul class="setlist" id="setlist"></ul>
+  </section>
+
+  <div id="scorebox" class="hidden">
+    <canvas id="page"></canvas>
+    <div class="turnflash" id="flash"></div>
+  </div>
+
+  <section class="panel" id="tips">
+    <p class="help"><b>To mark page turns:</b> press Play and tap <b>Turn here</b> each time you want the next page. Tapping it later during any listen replaces that one turn, so you can fix a single late or early turn without redoing the rest. Keys: <kbd>Space</kbd> play/pause, <kbd>T</kbd> turn here, <kbd>←</kbd>/<kbd>→</kbd> page.</p>
+    <div class="row">
+      <button class="btn" id="openSetup">Scores on this device</button>
+      <button class="btn" id="copyMarks">Copy page turns</button>
+      <button class="btn" id="resetMarks">Use saved turns for this piece</button>
+    </div>
+    <p class="help mono" id="marksdump"></p>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* Setlist: video IDs and saved page turns only. No score content lives here. */
+const PIECES = [
+  {id:"01", title:"Whoever You Are", composer:"Jeffrey Derus", video:"MI5qx-zzByc", marks:null},
+  {id:"02", title:"To the Hands", composer:"Caroline Shaw", video:"XJkJ0JY_DJE", marks:null},
+  {id:"03", title:"My heart be brave", composer:"Marques L. A. Garrett", video:"A-tf-b-jEAY", marks:null},
+  {id:"04", title:"All Seems Beautiful to Me", composer:"Eric Whitacre", video:"JlBLlC-HmhI", marks:null},
+  {id:"05", title:"Flower into Kindness", composer:"Jake Runestad", video:"-BEhLpWlrCc", marks:null},
+  {id:"06", title:"I Saw Eternity", composer:"Lucy Walker", video:"DnsBlsqWYF8", marks:null},
+  {id:"07", title:"Shenandoah", composer:"arr. James Erb", video:"rM_W10ZclQs", marks:null},
+  {id:"08", title:"The Road Home", composer:"Stephen Paulus", video:"dlcAt2dKXQU", marks:null},
+  {id:"09", title:"Great Day", composer:"arr. Stacey V. Gibbs", video:"xDzwddfEe-Y", marks:null},
+  {id:"10", title:"Light of a Clear Blue Morning", composer:"Parton, arr. Craig Hella Johnson", video:"TkrIQ0XEeFU", marks:null}
+];
+/* SAVED_MARKS: {pieceId: {pageNumber: seconds}} — loaded from marks.json (reviewed turns) */
+let SAVED_MARKS = {};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const $ = s => document.querySelector(s);
+const LS_MARKS = "lcs-home-marks-v1", LS_PIECE = "lcs-home-piece-v1";
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- IndexedDB for PDFs (this device only) ---------- */
+let dbp;
+function db(){
+  if(!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("lcs-home-scores", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("pdfs");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function idb(mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction("pdfs", mode); const s = tx.objectStore("pdfs");
+    const q = fn(s); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error);
+  });
+}
+const getPdf = id => idb("readonly", s => s.get(id));
+const putPdf = (id, v) => idb("readwrite", s => s.put(v, id));
+const listPdfs = () => idb("readonly", s => s.getAllKeys());
+
+/* ---------- state ---------- */
+let cur = null, pdf = null, page = 1, pages = 0;
+let player = null, ytReady = false, playing = false, lastManual = 0, renderTask = null, wake = null;
+let localMarks = store.get(LS_MARKS, {});
+
+function marksFor(id){
+  if(localMarks[id] && Object.keys(localMarks[id]).length) return {src:"local", m:localMarks[id]};
+  if(SAVED_MARKS[id]) return {src:"saved", m:SAVED_MARKS[id]};
+  return {src:"none", m:{}};
+}
+function sortedMarks(m){ return Object.entries(m).map(([p,t]) => [+p, +t]).sort((a,b) => a[1]-b[1] || a[0]-b[0]); }
+function pageAt(t, m){
+  const s = sortedMarks(m); if(!s.length) return null;
+  let p = s[0][0];
+  for(const [pg, tm] of s){ if(tm <= t + 0.05) p = pg; else break; }
+  return p;
+}
+const fmt = s => { s = Math.max(0, s|0); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+
+/* ---------- UI ---------- */
+function fillSelect(){
+  const sel = $("#piece");
+  sel.innerHTML = PIECES.map(p => `<option value="${p.id}">${+p.id}. ${p.title}</option>`).join("");
+}
+async function refreshSetlist(){
+  const have = new Set(await listPdfs().catch(() => []));
+  $("#setlist").innerHTML = PIECES.map(p => {
+    const mk = marksFor(p.id); const n = Object.keys(mk.m).length;
+    const pdfChip = have.has(p.id) ? `<span class="chip ok">Score loaded</span>` : `<span class="chip">No score yet</span>`;
+    const turnChip = n > 1 ? `<span class="chip ok">${n-1} turns</span>` : `<span class="chip warn">No turns yet</span>`;
+    return `<li><span class="n mono">${+p.id}</span><span><span class="t">${p.title}</span><br><span class="c">${p.composer}</span></span><span class="row">${pdfChip}${turnChip}</span></li>`;
+  }).join("");
+  return have;
+}
+function setStatus(){
+  if(!cur) return;
+  const mk = marksFor(cur.id); const n = Object.keys(mk.m).length;
+  const t = player && ytReady ? player.getCurrentTime() : 0;
+  const d = player && ytReady ? player.getDuration() : 0;
+  const src = mk.src === "local" ? "your marks on this device" : mk.src === "saved" ? "saved turns" : "no turns marked yet";
+  $("#status").innerHTML = `<span class="mono">${fmt(t)} / ${fmt(d)}</span> · ${cur.composer} · <b>${n>1 ? (n-1)+" page turns" : "No page turns"}</b> (${src})`;
+  $("#pageinfo").textContent = pages ? `${page} / ${pages}` : "– / –";
+  $("#undo").disabled = mk.src !== "local" || n < 2;
+}
+function flash(){ const f = $("#flash"); f.classList.add("on"); requestAnimationFrame(() => setTimeout(() => f.classList.remove("on"), 60)); }
+
+async function renderPage(n){
+  if(!pdf) return;
+  n = Math.min(Math.max(1, n), pages);
+  const changed = n !== page; page = n; setStatus();
+  const pg = await pdf.getPage(n);
+  const vp1 = pg.getViewport({scale:1});
+  const header = document.querySelector("header.bar").getBoundingClientRect().height;
+  const availW = Math.min(document.querySelector("main").clientWidth - 16, 1000);
+  const availH = window.innerHeight - header - 24;
+  const scale = Math.min(availW / vp1.width, Math.max(availH, 320) / vp1.height);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const vp = pg.getViewport({scale: scale * dpr});
+  const c = $("#page"), ctx = c.getContext("2d");
+  if(renderTask){ try{ renderTask.cancel(); }catch(e){} }
+  const off = document.createElement("canvas"); off.width = vp.width; off.height = vp.height;
+  renderTask = pg.render({canvasContext: off.getContext("2d"), viewport: vp});
+  try{ await renderTask.promise; }catch(e){ return; }
+  c.width = off.width; c.height = off.height; ctx.drawImage(off, 0, 0);
+  c.style.width = (vp.width / dpr) + "px"; c.style.height = (vp.height / dpr) + "px";
+  if(changed) flash();
+  if(n < pages) pdf.getPage(n+1).catch(() => {});
+}
+
+async function loadPiece(id){
+  cur = PIECES.find(p => p.id === id) || PIECES[0];
+  store.set(LS_PIECE, cur.id); $("#piece").value = cur.id;
+  pdf = null; pages = 0; page = 1;
+  const rec = await getPdf(cur.id).catch(() => null);
+  if(rec){
+    pdf = await pdfjsLib.getDocument({data: new Uint8Array(rec.data)}).promise;
+    pages = pdf.numPages; $("#scorebox").classList.remove("hidden");
+    const mk = marksFor(cur.id); const p0 = pageAt(0, mk.m);
+    await renderPage(p0 || 1);
+  } else {
+    $("#scorebox").classList.add("hidden"); openSetup();
+  }
+  if(player && ytReady){ player.cueVideoById(cur.video); }
+  setStatus(); dumpMarks();
+}
+
+function openSetup(){ $("#setup").classList.remove("hidden"); refreshSetlist(); }
+function matchPiece(name){
+  const m = name.match(/^(\d{2})[-_ ]/); if(m && PIECES.some(p => p.id === m[1])) return m[1];
+  const low = name.toLowerCase();
+  const keys = {"01":"derus","02":"shaw","03":"garrett","04":"whitacre","05":"runestad","06":"walker","07":"erb","08":"paulus","09":"gibbs","10":"blue-morning"};
+  for(const [id,k] of Object.entries(keys)) if(low.includes(k)) return id;
+  return null;
+}
+$("#files").addEventListener("change", async e => {
+  let n = 0;
+  for(const f of e.target.files){
+    const id = matchPiece(f.name); if(!id) continue;
+    await putPdf(id, {name: f.name, data: await f.arrayBuffer()}); n++;
+  }
+  await refreshSetlist(); e.target.value = "";
+  if(n && cur && !pdf) loadPiece(cur.id);
+});
+$("#openSetup").onclick = openSetup;
+$("#closeSetup").onclick = () => { $("#setup").classList.add("hidden"); if(cur && !pdf) loadPiece(cur.id); };
+$("#piece").onchange = e => loadPiece(e.target.value);
+
+/* ---------- marks ---------- */
+function saveLocal(m){ localMarks[cur.id] = m; store.set(LS_MARKS, localMarks); setStatus(); dumpMarks(); }
+function markTurn(){
+  if(!cur || !pdf || !player || !ytReady) return;
+  const t = +player.getCurrentTime().toFixed(2);
+  const base = marksFor(cur.id);
+  const m = Object.assign({}, base.m);
+  if(!Object.keys(m).length) m[page] = 0;
+  const nextP = Math.min(page + 1, pages);
+  if(nextP === page) return;
+  for(const [p, tm] of Object.entries(m)){ if(+p > nextP && tm <= t) delete m[p]; }
+  m[nextP] = t; lastManual = 0;
+  saveLocal(m); renderPage(nextP);
+  const b = $("#mark"); b.classList.add("recording"); setTimeout(() => b.classList.remove("recording"), 250);
+}
+function undoTurn(){
+  const mk = marksFor(cur.id); if(mk.src !== "local") return;
+  const s = sortedMarks(mk.m); if(s.length < 2) return;
+  const m = Object.assign({}, mk.m); delete m[s[s.length-1][0]]; saveLocal(m);
+  renderPage(s[s.length-2][0]);
+}
+function dumpMarks(){
+  const all = {}; for(const p of PIECES){ const mk = marksFor(p.id); if(Object.keys(mk.m).length) all[p.id] = mk.m; }
+  $("#marksdump").textContent = Object.keys(all).length ? JSON.stringify(all) : "";
+}
+$("#mark").onclick = markTurn; $("#undo").onclick = undoTurn;
+$("#resetMarks").onclick = () => { if(!cur) return; delete localMarks[cur.id]; store.set(LS_MARKS, localMarks); setStatus(); dumpMarks(); };
+$("#copyMarks").onclick = async () => {
+  const txt = $("#marksdump").textContent || "{}";
+  try{ await navigator.clipboard.writeText(txt); $("#copyMarks").textContent = "Copied"; }
+  catch(e){ const r = document.createRange(); r.selectNodeContents($("#marksdump")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMarks").textContent = "Selected — copy it"; }
+  setTimeout(() => $("#copyMarks").textContent = "Copy page turns", 2000);
+};
+
+/* ---------- transport ---------- */
+$("#play").onclick = () => { if(!ytReady) return; playing ? player.pauseVideo() : player.playVideo(); };
+$("#back5").onclick = () => ytReady && player.seekTo(Math.max(0, player.getCurrentTime() - 5), true);
+$("#fwd5").onclick = () => ytReady && player.seekTo(player.getCurrentTime() + 5, true);
+$("#restart").onclick = () => { if(!ytReady) return; player.seekTo(0, true); const p0 = pageAt(0, marksFor(cur.id).m); renderPage(p0 || 1); };
+$("#prev").onclick = () => { lastManual = Date.now(); renderPage(page - 1); };
+$("#next").onclick = () => { lastManual = Date.now(); renderPage(page + 1); };
+document.addEventListener("keydown", e => {
+  if(e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
+  if(e.code === "Space"){ e.preventDefault(); $("#play").click(); }
+  else if(e.key === "t" || e.key === "T"){ e.preventDefault(); markTurn(); }
+  else if(e.key === "ArrowRight"){ $("#next").click(); }
+  else if(e.key === "ArrowLeft"){ $("#prev").click(); }
+});
+async function keepAwake(on){
+  try{
+    if(on && "wakeLock" in navigator && !wake){ wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => wake = null); }
+    if(!on && wake){ await wake.release(); wake = null; }
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && playing) keepAwake(true); });
+
+setInterval(() => {
+  if(!ytReady || !cur) return;
+  setStatus();
+  if(!playing || !pdf) return;
+  if(Date.now() - lastManual < 4000) return;
+  const p = pageAt(player.getCurrentTime(), marksFor(cur.id).m);
+  if(p && p !== page) renderPage(p);
+}, 150);
+
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player("yt", {
+    width: 200, height: 200, videoId: (cur || PIECES[0]).video,
+    playerVars: {playsinline: 1, rel: 0, modestbranding: 1},
+    events: {
+      onReady: () => { ytReady = true; if(cur && player.getVideoData().video_id !== cur.video) player.cueVideoById(cur.video); setStatus(); },
+      onStateChange: e => {
+        playing = e.data === YT.PlayerState.PLAYING;
+        $("#play").textContent = playing ? "❚❚ Pause" : "▶ Play";
+        keepAwake(playing);
+      }
+    }
+  });
+};
+let resizeT; window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => renderPage(page), 200); });
+
+(async function init(){
+  fillSelect();
+  try{ SAVED_MARKS = await fetch("marks.json", {cache: "no-store"}).then(r => r.ok ? r.json() : {}); }catch(e){ SAVED_MARKS = {}; }
+  const have = await refreshSetlist().catch(() => new Set());
+  if(!have.size) openSetup();
+  await loadPiece(store.get(LS_PIECE, "09"));
+  const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
